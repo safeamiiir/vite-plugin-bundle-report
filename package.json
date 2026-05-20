@@ -1,7 +1,7 @@
 {
   "name": "vite-plugin-bundle-report",
-  "version": "0.1.0",
-  "description": "Vite plugin that generates a shipped assets/chunks report and a dependency packages report after build.",
+  "version": "0.2.0",
+  "description": "Vite plugin built on rollup-plugin-visualizer that emits a combined bundle and dependency report.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -20,7 +20,9 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "vite",
@@ -33,13 +35,20 @@
     "dependencies"
   ],
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "peerDependencies": {
-    "vite": ">=4.0.0"
+    "vite": ">=5.0.0"
+  },
+  "dependencies": {
+    "rollup-plugin-visualizer": "^5.14.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^2.1.8"
   }
 }
