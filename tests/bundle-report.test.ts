@@ -44,7 +44,7 @@ describe('bundleReportPlugin', () => {
 
         const plugins = [{ name: 'seed-plugin' } as Plugin];
         plugins.push(
-            bundleReportPlugin({ dependenciesOutputFile: 'dist/dependencies.json' }),
+            ...bundleReportPlugin({ dependenciesOutputFile: 'dist/dependencies.json' }),
         );
 
         await build({

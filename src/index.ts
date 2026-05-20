@@ -1,6 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { randomUUID } from 'crypto';
 import type { Plugin } from 'vite';
 import { visualizer } from 'rollup-plugin-visualizer';
 
@@ -49,16 +50,32 @@ export interface BundleReportOptions {
 
     /**
      * Report sections to include in the output.
-     * Uses canonical keys in the final report (`entryChunks`, `dependencyPackages`, etc).
+     * Uses canonical keys in the final report (`dependencyPackages`, `sourceModules`, etc).
      * Defaults to all sections.
+     *
+     * Note: `entryChunks` is always present in the output regardless of this option.
      */
-    reportSections?: ReportSection[];
+    reportSections?: Exclude<ReportSection, 'entryChunks'>[];
 
     /**
      * Absolute path to the project root, used to compute relative source module paths.
      * Defaults to Vite's resolved project root.
      */
     projectRoot?: string;
+}
+
+function readAndDeleteTempFile(filePath: string): unknown {
+    try {
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch {
+        return null;
+    } finally {
+        try {
+            fs.unlinkSync(filePath);
+        } catch {
+            // ignore — file may not exist if visualizer did not write it
+        }
+    }
 }
 
 type CollectedBundleData = {
@@ -72,11 +89,11 @@ export function bundleReportPlugin(options: BundleReportOptions): Plugin[] {
     const { dependenciesOutputFile, reportSections, projectRoot } = options;
     let resolvedProjectRoot = projectRoot ?? process.cwd();
 
-    // Use os.tmpdir() for the visualizer temp file so the path is fixed at
-    // plugin construction time and independent of config.root resolution.
+    // Use os.tmpdir() with a per-invocation UUID so concurrent builds
+    // (e.g. multi-config Vite builds) never share the same temp file.
     const visualizerTempFile = path.join(
         os.tmpdir(),
-        `vite-plugin-bundle-report-${process.pid}.json`,
+        `vite-plugin-bundle-report-${randomUUID()}.json`,
     );
 
     let collectedData: CollectedBundleData | null = null;
@@ -195,17 +212,11 @@ export function bundleReportPlugin(options: BundleReportOptions): Plugin[] {
                 collectedData;
             collectedData = null;
 
-            let visualizerData: unknown = null;
-            if (fs.existsSync(visualizerTempFile)) {
-                try {
-                    visualizerData = JSON.parse(fs.readFileSync(visualizerTempFile, 'utf8'));
-                } catch {
-                    visualizerData = null;
-                }
-                fs.unlinkSync(visualizerTempFile);
-            }
+            const visualizerData = fs.existsSync(visualizerTempFile)
+                ? readAndDeleteTempFile(visualizerTempFile)
+                : null;
 
-            const selectedSections = new Set(reportSections ?? DEFAULT_REPORT_SECTIONS);
+            const selectedSections = new Set<ReportSection>(reportSections ?? DEFAULT_REPORT_SECTIONS);
             selectedSections.add('entryChunks');
 
             const dependenciesReport: Partial<Record<ReportSection, unknown>> = {
