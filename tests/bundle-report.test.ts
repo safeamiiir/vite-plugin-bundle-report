@@ -129,14 +129,8 @@ describe('bundleReportPlugin', () => {
         });
 
         const reportPath = path.join(fixtureRoot, 'dist', 'dependencies.json');
-        const visualizerTempPath = path.join(
-            fixtureRoot,
-            'dist',
-            'dependencies.visualizer.json',
-        );
 
         expect(fs.existsSync(reportPath)).toBe(true);
-        expect(fs.existsSync(visualizerTempPath)).toBe(false);
 
         const report = JSON.parse(
             await fsp.readFile(reportPath, 'utf8'),

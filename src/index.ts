@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import type { Plugin } from 'vite';
 import { visualizer } from 'rollup-plugin-visualizer';
@@ -60,11 +61,27 @@ export interface BundleReportOptions {
     projectRoot?: string;
 }
 
-function createBundleReportPlugin(options: BundleReportOptions): Plugin {
+type CollectedBundleData = {
+    emitted: unknown[];
+    entryChunkFileNames: string[];
+    dependencyPackages: string[];
+    sourceModules: string[];
+};
+
+export function bundleReportPlugin(options: BundleReportOptions): Plugin[] {
     const { dependenciesOutputFile, reportSections, projectRoot } = options;
     let resolvedProjectRoot = projectRoot ?? process.cwd();
 
-    return {
+    // Use os.tmpdir() for the visualizer temp file so the path is fixed at
+    // plugin construction time and independent of config.root resolution.
+    const visualizerTempFile = path.join(
+        os.tmpdir(),
+        `vite-plugin-bundle-report-${process.pid}.json`,
+    );
+
+    let collectedData: CollectedBundleData | null = null;
+
+    const reportPlugin: Plugin = {
         name: 'vite-plugin-bundle-report',
         apply: 'build',
         configResolved(config) {
@@ -72,29 +89,7 @@ function createBundleReportPlugin(options: BundleReportOptions): Plugin {
                 resolvedProjectRoot = config.root;
             }
         },
-        async generateBundle(_options: unknown, bundle: Record<string, EmittedItem>) {
-            const reportPath = path.resolve(resolvedProjectRoot, dependenciesOutputFile);
-            const visualizerTempOutputFile = path.join(
-                path.dirname(reportPath),
-                `${path.basename(reportPath, path.extname(reportPath))}.visualizer.json`,
-            );
-
-            const visualizerPlugin = visualizer({
-                filename: visualizerTempOutputFile,
-                json: true,
-            }) as unknown as {
-                generateBundle?: (
-                    this: unknown,
-                    outputOptions: unknown,
-                    outputBundle: Record<string, EmittedItem>,
-                    isWrite: boolean,
-                ) => void | Promise<void>;
-            };
-
-            if (visualizerPlugin.generateBundle) {
-                await visualizerPlugin.generateBundle.call(this, _options, bundle, true);
-            }
-
+        generateBundle(_options: unknown, bundle: Record<string, EmittedItem>) {
             const emitted = Object.values(bundle).map((item) => {
                 if (item.type === 'asset') {
                     const sourceSize =
@@ -182,24 +177,39 @@ function createBundleReportPlugin(options: BundleReportOptions): Plugin {
                 ),
             ).sort();
 
+            collectedData = {
+                emitted,
+                entryChunkFileNames: chunks
+                    .filter((chunk) => chunk.isEntry)
+                    .map((chunk) => chunk.fileName),
+                dependencyPackages,
+                sourceModules,
+            };
+        },
+        closeBundle() {
+            if (!collectedData) {
+                return;
+            }
+
+            const { emitted, entryChunkFileNames, dependencyPackages, sourceModules } =
+                collectedData;
+            collectedData = null;
+
             let visualizerData: unknown = null;
-            if (visualizerTempOutputFile && fs.existsSync(visualizerTempOutputFile)) {
+            if (fs.existsSync(visualizerTempFile)) {
                 try {
-                    visualizerData = JSON.parse(
-                        fs.readFileSync(visualizerTempOutputFile, 'utf8'),
-                    );
+                    visualizerData = JSON.parse(fs.readFileSync(visualizerTempFile, 'utf8'));
                 } catch {
                     visualizerData = null;
                 }
+                fs.unlinkSync(visualizerTempFile);
             }
 
             const selectedSections = new Set(reportSections ?? DEFAULT_REPORT_SECTIONS);
             selectedSections.add('entryChunks');
 
             const dependenciesReport: Partial<Record<ReportSection, unknown>> = {
-                entryChunks: chunks
-                    .filter((chunk) => chunk.isEntry)
-                    .map((chunk) => chunk.fileName),
+                entryChunks: entryChunkFileNames,
                 dependencyPackages,
                 sourceModules,
                 shipped: emitted,
@@ -221,14 +231,11 @@ function createBundleReportPlugin(options: BundleReportOptions): Plugin {
                 dependenciesReportPath,
                 JSON.stringify(filteredDependenciesReport, null, 2),
             );
-
-            if (visualizerTempOutputFile && fs.existsSync(visualizerTempOutputFile)) {
-                fs.unlinkSync(visualizerTempOutputFile);
-            }
         },
     };
-}
 
-export function bundleReportPlugin(options: BundleReportOptions): Plugin {
-    return createBundleReportPlugin(options);
+    return [
+        visualizer({ filename: visualizerTempFile, json: true }) as Plugin,
+        reportPlugin,
+    ];
 }

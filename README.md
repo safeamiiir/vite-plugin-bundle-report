@@ -1,6 +1,6 @@
 # vite-plugin-bundle-report
 
-A Vite plugin built on top of [`rollup-plugin-visualizer`](https://www.npmjs.com/package/rollup-plugin-visualizer) that generates a single JSON report after every build.
+A Vite plugin that generates a single JSON report after every build. It uses [`rollup-plugin-visualizer`](https://www.npmjs.com/package/rollup-plugin-visualizer) internally — you do not need to install or configure it yourself.
 
 The output includes:
 
