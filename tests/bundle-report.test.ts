@@ -184,7 +184,6 @@ describe('bundleReportPlugin', () => {
             await fsp.readFile(reportPath, 'utf8'),
         ) as CombinedReport;
 
-        console.log('Generated report:', report);
         expect(report.entryChunks).toContain('bundle.mjs');
         expect(report.shipped?.some((item) => item.type === 'chunk')).toBe(true);
         expect(report.dependencyPackages).toBeUndefined();
