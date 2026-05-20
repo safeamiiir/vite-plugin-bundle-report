@@ -31,8 +31,7 @@ export type ReportSection =
     | 'shipped'
     | 'visualizer';
 
-const DEFAULT_REPORT_SECTIONS: ReportSection[] = [
-    'entryChunks',
+const DEFAULT_REPORT_SECTIONS: Exclude<ReportSection, 'entryChunks'>[] = [
     'dependencyPackages',
     'sourceModules',
     'shipped',

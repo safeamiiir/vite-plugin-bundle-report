@@ -41,16 +41,17 @@ The plugin only runs during `build` (`apply: 'build'`) so it has no effect on de
 | Option                   | Type     | Required | Description                                                                 |
 |--------------------------|----------|----------|-----------------------------------------------------------------------------|
 | `dependenciesOutputFile` | `string` | ✓        | Path (relative to `projectRoot`) to write the combined report.             |
-| `reportSections`         | `ReportSection[]` | — | Select which sections to populate in the report. Defaults to all sections. |
+| `reportSections`         | `Exclude<ReportSection, 'entryChunks'>[]` | — | Select which sections to populate in the report. Defaults to all sections. |
 | `projectRoot`            | `string` | —        | Absolute path to the project root. Defaults to Vite's resolved root.       |
 
-`ReportSection` values:
+`ReportSection` values (passable via `reportSections`):
 
-- `entryChunks`
 - `dependencyPackages`
 - `sourceModules`
 - `shipped`
 - `visualizer`
+
+Note: `entryChunks` is always included in the output and cannot be passed to `reportSections`.
 
 ## Output shape
 
