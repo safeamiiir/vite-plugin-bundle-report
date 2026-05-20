@@ -229,6 +229,6 @@ function createBundleReportPlugin(options: BundleReportOptions): Plugin {
     };
 }
 
-export function bundleReportPlugin(options: BundleReportOptions): Plugin[] {
-    return [createBundleReportPlugin(options)];
+export function bundleReportPlugin(options: BundleReportOptions): Plugin {
+    return createBundleReportPlugin(options);
 }

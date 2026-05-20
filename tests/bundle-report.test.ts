@@ -39,11 +39,11 @@ afterEach(async () => {
 });
 
 describe('bundleReportPlugin', () => {
-    it('can be pushed into arrays inferred as Plugin[] entries', async () => {
+    it('can be pushed into a plain inferred plugins array', async () => {
         const fixtureRoot = await createFixtureProject();
 
-        const seedPluginArrays = [[{ name: 'seed-plugin' } as Plugin]];
-        seedPluginArrays.push(
+        const plugins = [{ name: 'seed-plugin' } as Plugin];
+        plugins.push(
             bundleReportPlugin({ dependenciesOutputFile: 'dist/dependencies.json' }),
         );
 
@@ -51,7 +51,7 @@ describe('bundleReportPlugin', () => {
             configFile: false,
             logLevel: 'silent',
             root: fixtureRoot,
-            plugins: seedPluginArrays,
+            plugins,
             build: {
                 outDir: 'dist',
                 emptyOutDir: true,
@@ -191,4 +191,5 @@ describe('bundleReportPlugin', () => {
         expect(report.sourceModules).toBeUndefined();
         expect(report.visualizer).toBeUndefined();
     });
+
 });
