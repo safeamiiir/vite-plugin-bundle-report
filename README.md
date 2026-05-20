@@ -28,7 +28,7 @@ export default defineConfig({
   plugins: [
     bundleReportPlugin({
       dependenciesOutputFile: 'dist/dependencies.json',
-      reportSections: ['entryChunks', 'dependencyPackages', 'shipped'],
+      reportSections: ['dependencyPackages', 'shipped'],
     }),
   ],
 });
@@ -86,7 +86,7 @@ You can conditionally add the plugin the same way you would with any Vite plugin
 ```ts
 if (process.env.ANALYZE) {
   plugins.push(
-    bundleReportPlugin({
+    ...bundleReportPlugin({
       dependenciesOutputFile: 'dist/dependencies.json',
     })
   );
